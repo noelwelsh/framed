@@ -1,64 +1,82 @@
-sealed trait Col[Name,Value]
-
-
-sealed abstract class Frame extends Product with Serializable {
-  import Frame._
-  def ::[K,V]: Pair[K,V,this.type] =
-    Pair(this)
-
-  def select[Name] given (w: FrameTypeFunctions.Select[this.type, Name] >:> Nothing): FrameTypeFunctions.Select[this.type,Name] =
-    ???
-}
-object Frame {
-  final case class Pair[K,V,Tail <: Frame](tail: Tail) extends Frame
-  case object Empty extends Frame
-
-  def empty: Empty.type = Empty
-}
-// enum Frame {
-//   case Empty
-//   case Pair[K,V,Tail <: Frame](tail: Tail)
-
-//   def ::[K,V]: Pair[K,V,this.type] = {
-//     new Pair[K,V,this.type](this)
+// type IsFrame[T <: Tuple] =
+//   T match {
+//     case Unit => Unit
+//     case Col[k, v] *: cols => Col[k, v] *: cols
 //   }
+import scala.compiletime._
+import scala.compiletime.ops.any
 
-//   def select[Name]: FrameTypeFunctions.Select[this.type,Name] =
-//     ???
-// }
-object FrameExamples {
-  val empty: Frame.Empty.type = Frame.Empty
+final case class Col[Key, Value](data: Array[Value]) 
 
-  val name = empty.::["name",String]
-  val select = name.select["name"]
-  empty.select["name"]
-}
+object Frame {
+  object Types {
+    type IndexOf[F <: Tuple, Key] <: Int =
+      F match {
+        case Col[Key, v] *: cols => 0
+        case Col[k, v] *: cols => S[IndexOf[cols, Key]]
+      }
 
-object FrameTypeFunctions {
-  import Frame._
+    type Get[F <: Tuple, Key] = 
+      F match {
+        case Col[Key, v] *: cols => v
+        case Col[k, v] *: cols => Get[cols, Key]
+        case _ => Nothing
+      }
+      // Tuple.Elem[F, IndexOf[F, Key]]
+  }
 
-  type Select[A <: Frame,Name] <: Frame =
-    A match {
-      case Pair[Name,v,t] => Pair[Name,v, Select[t,Name]]
-      case Pair[_,_,t]    => Select[t,Name]
-      case Empty.type     => Empty.type
+  inline def get[Key, F <: Tuple](frame: F): Array[Types.Get[F, Key]] =
+    // frame.apply(constValue[Types.IndexOf[F, Key]])
+    inline frame match {
+      case Unit => error("The frame did not have an element with the given key.")
+      case (c: Col[k, v]) *: cols => 
+        inline if(constValue[any.==[Key, k]]) c.data.asInstanceOf[Array[Types.Get[F, Key]]]
+               else get[Key, cols.type](cols).asInstanceOf[Array[Types.Get[F, Key]]]
     }
+
+  val frame: Col["firstName", String] *: Unit = (Col["firstName", String](Array("Dotty")) *: ())
+  get[Key="firstName"](frame)
 }
+// sealed trait Frame {
+//   import Frame._
 
-// /**
-//  * A data frame contains a description of operations that should be performed on
-//  * data.
-//  *
-//  * Implementation is just proof of concept for now
-//  */
-// enum Frame[A <: Tuple] {
-//   import FrameTypeFunctions._
+//   def ::[Key,V](data: Array[V]): Pair[Key,V,this.type] =
+//     new Pair(data, this)
 
-//   case Pure()
+//   /** 
+//     * Given a key get the data associated with that key.
+//     */
+//   inline def get[Key]: Types.Get[this.type, Key] =
+//     inline this match {
+//       case Empty => error("There is no column in this data frame with the given key.")
+//       case p: Pair[k, v, _] => 
+//         inline if(constValue[any.==[Key, k]]) p.data.asInstanceOf[Types.Get[this.type, Key]]
+//         else p.tail.get[Key].asInstanceOf[Types.Get[p.tail.type, Key]]
+//     }
 
-//   def add[Name,Value]: Frame[Col[Name,Value] *: A] =
-//     Pure()
+//   // inline def select[Keys <: Tuple] <: Frame =
+//   //   inline erasedValue[Keys] match {
+//   //     case () => Empty
+//   //     case _: *:[k,ks] => select[ks].::[Key=k](get[k])
+//   //   }
+// }
+// object Frame {
+//   val empty: Empty.type = Empty
 
-//   def select[Name]: Frame[Select[A,Name]] =
-//     Pure[Select[A,Name]]()
+//   final case class Pair[Key,V, Tail <: Frame](data: Array[V], tail: Tail) extends Frame
+//   case object Empty extends Frame
+
+//   object Types {
+//     type Get[F <: Frame, Key] =
+//       F match {
+//         case Pair[Key, v, t] => Array[v]
+//         case Pair[k, _, t] => Get[t, Key]
+//       }
+//   }
+// }
+
+// object FrameExamples {
+//   val name = Frame.empty.::[Key="firstName"](Array("John")).::[Key="lastName"](Array("Doe"))
+//   val firstName: Array[String] = name.get["firstName"]
+//   // val empty: Frame.Empty.type = name.select["Age"]
 // }

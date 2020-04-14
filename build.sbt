@@ -1,4 +1,6 @@
-val dottyVersion = "0.21.0-RC1"
+val dottyVersion = dottyLatestNightlyBuild.get //"0.24.0-bin-SNAPSHOT"
+
+ThisBuild / useSuperShell := false
 
 lazy val root = project
   .in(file("."))
