@@ -135,3 +135,7 @@ local.properties
 # Metals and Bloop
 .metals
 .bloop
+metals.sbt
+.bsp
+.dotty-ide-artifact
+.dotty-ide.json
