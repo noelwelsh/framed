@@ -1,11 +1,13 @@
 # Framed: Typed Dataframe for Scala 3
 
+It's clearly possible to implement a dataframe library in Scala---Spark has one, for example. What's not clear is if it's possible to implement one that uses the type system to prevent common errors. For example, in Spark it's a runtime error to select a column that doesn't exist (Spark has typed dataframes but in practice they are unusable; all real systems I know of use the untyped dataframes). Can this be prevented at compile time? If so, it seems it could be a significant UX improvement over current systems.
+
 This project is an experiment in creating a typed dataframe in Scala 3. Scala 3's compile-time metaprogramming features should make this possible in a way that was not achievable in Scala 2 with reasonable UX. 
 
 There are two goals for this project:
 
 1. Show it's possible to implement a typed dataframe in Scala 3
-2. Show that such a dataframe is usable---compile-times are reasonable and error messages are no incomprehensible
+2. Show that such a dataframe is usable---compile times are reasonable and error messages are not incomprehensible
 
 
 ## Basic Design
@@ -16,7 +18,7 @@ To prove this can actually work it should be sufficient to implement a few core 
 
 - selecting a column by name
 - selecting several columns by name
-- add a column
+- adding a column
 - dropping a column
 - joining two dataframes (maybe just inner join to start with?)
 
